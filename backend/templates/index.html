@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>J.A.R.V.I.S. - Emotion-Aware AI</title>
+    <link rel="icon" href="https://bing.com/th/id/BCO.27d53da6-88ef-4774-ba16-2702b4a59f55.png" type="image/jpeg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts: Inter for general text, and Orbitron for titles -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Global Styles & Monochrome Futuristic Theme */
+        :root {
+            --bg-dark: #121212; /* Near black */
+            --bg-medium: #1e1e1e; /* Dark charcoal */
+            --bg-light: #2c2c2c; /* Slightly lighter charcoal */
+            --text-light: #f0f0f0; /* Off-white */
+            --text-dark: #333333; /* Dark gray for contrast */
+            --accent-gray: #888888; /* Medium gray for subtle accents */
+            --border-color: #444444; /* Darker gray for borders */
+            --chat-bot-bubble: #333333; /* Dark gray for bot messages */
+            --chat-user-bubble: #555555; /* Medium gray for user messages */
+            --input-bg: #222222; /* Dark input background */
+            --input-border: #666666; /* Lighter gray input border */
+            --button-bg: #444444; /* Dark gray button */
+            --button-hover: #666666; /* Lighter gray button on hover */
+            --status-text: #aaaaaa; /* Light gray for status */
+            --error-text: #e74c3c; /* Retain a subtle red for errors */
+            --shadow-color: rgba(0, 0, 0, 0.6); /* Darker shadow */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-medium) 100%);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Main Chat Container */
+        .chat-container {
+            width: 95%;
+            max-width: 900px;
+            background-color: var(--bg-medium);
+            border-radius: 12px; /* Slightly less rounded than before for a cleaner look */
+            box-shadow: 0 8px 25px var(--shadow-color); /* Adjusted shadow */
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 3rem);
+            border: 1px solid var(--border-color); /* Cleaner border */
+            overflow: hidden;
+        }
+
+        /* Chat Header */
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem; /* Slightly smaller for neatness */
+            font-weight: 700;
+            color: var(--text-light); /* White for title */
+            padding: 1.2rem 1.5rem; /* Reduced padding */
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            background-color: var(--bg-light);
+            text-shadow: none; /* Removed neon glow for cleaner look */
+            letter-spacing: 0.5px; /* Reduced letter spacing */
+        }
+
+        /* Emotion Status and Video Area */
+        #emotion-section {
+            padding: 0.8rem 1.5rem; /* Reduced padding */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem; /* Reduced gap */
+            background-color: var(--bg-dark);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #emotion-status {
+            font-size: 0.85rem; /* Slightly smaller font */
+            color: var(--status-text);
+            font-style: italic;
+            text-align: center;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #emotion-video-container {
+            position: relative;
+            display: none;
+            width: 220px; /* Slightly smaller video feed */
+            height: 165px; /* 4:3 aspect ratio */
+            border-radius: 8px; /* Less rounded */
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); /* Subtle white glow */
+            border: 1px solid var(--accent-gray); /* Subtle border */
+        }
+
+        #video, #canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        /* Chat Box (Conversation Area) */
+        #chat-box {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* Reduced gap between messages */
+            background-color: var(--bg-medium);
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar styling for chat-box (Monochrome) */
+        #chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-box::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+            border-radius: 10px;
+        }
+        #chat-box::-webkit-scrollbar-thumb {
+            background: var(--accent-gray);
+            border-radius: 10px;
+        }
+        #chat-box::-webkit-scrollbar-thumb:hover {
+            background: #aaaaaa; /* Lighter on hover */
+        }
+
+
+        .message {
+            padding: 0.8rem 1.1rem; /* Reduced padding */
+            border-radius: 16px; /* Less pill-shaped, more rounded rectangle */
+            max-width: 75%;
+            line-height: 1.4;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-out;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); /* Softer shadows */
+        }
+
+        /* Bot Message */
+        .bot {
+            background-color: var(--chat-bot-bubble);
+            color: var(--text-light);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px; /* Subtle corner difference */
+        }
+
+        /* User Message */
+        .user {
+            background-color: var(--chat-user-bubble);
+            color: var(--text-light); /* User text is also light */
+            align-self: flex-end;
+            border-bottom-right-radius: 4px; /* Subtle corner difference */
+        }
+
+        /* Input Form */
+        #input-form {
+            display: flex;
+            padding: 1rem 1.5rem; /* Adjusted padding */
+            gap: 0.6rem; /* Adjusted gap */
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-dark);
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem 1.2rem; /* Adjusted padding */
+            border: 1px solid var(--input-border);
+            border-radius: 20px; /* More standard rounded input */
+            font-size: 0.95rem; /* Slightly smaller font */
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: var(--input-bg);
+            color: var(--text-light);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="text"]::placeholder {
+            color: #999;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-gray); /* Accent gray on focus */
+            box-shadow: 0 0 0 3px rgba(136, 136, 136, 0.2); /* Subtle glow */
+            background-color: #2a2a2a; /* Slightly lighter on focus */
+        }
+
+        button {
+            padding: 0.8rem 1.5rem; /* Adjusted padding */
+            background: var(--button-bg);
+            border: none;
+            border-radius: 20px; /* More standard rounded button */
+            color: var(--text-light);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            letter-spacing: 0.2px;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px) scale(0.99);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1); 
+            border-top: 3px solid var(--status-text); /* Uses status text color */
+            border-radius: 50%;
+            width: 1.1rem; /* Slightly smaller */
+            height: 1.1rem; 
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.4rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 0.5rem 0;
+            }
+            .chat-container {
+                min-height: 98vh;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            h1 {
+                font-size: 1.4rem;
+                padding: 0.8rem 1rem;
+            }
+            #emotion-video-container {
+                width: 180px;
+                height: 135px;
+            }
+            .message {
+                max-width: 95%;
+                padding: 0.6rem 0.9rem;
+                font-size: 0.85rem;
+            }
+            #input-form {
+                padding: 0.7rem 1rem;
+                gap: 0.3rem;
+            }
+            input[type="text"] {
+                padding: 0.6rem 0.9rem;
+                font-size: 0.85rem;
+            }
+            button {
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>J.A.R.V.I.S. AI Assistant</h1>
+
+        <div id="emotion-section">
+            <div id="emotion-status">Loading AI core...</div>
+            <!-- Container for video and canvas, used for face-api.js -->
+            <div id="emotion-video-container">
+                <video id="video" autoplay muted></video>
+                <canvas id="canvas"></canvas>
+            </div>
+            <p style="font-size: 0.7rem; color: #999; text-align: center; margin-top: 0.2rem;">
+                Optimal detection: Face camera directly in good light.
+            </p>
+        </div>
+
+        <div id="chat-box"></div>
+        
+        <form id="input-form">
+            <input type="text" id="user-input" placeholder="Initiate dialogue..." required />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <!-- Face-api.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const emotionStatus = document.getElementById("emotion-status"); 
+        const chatBox = document.getElementById("chat-box");
+        const form = document.getElementById("input-form");
+        const input = document.getElementById("user-input");
+        const videoContainer = document.getElementById("emotion-video-container");
+
+        let detectedEmotion = "neutral";
+        let displaySize = { width: 0, height: 0 };
+        let modelsLoaded = false;
+        
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
+        const MIN_DETECTION_INTERVAL_MS = 250; 
+        let lastDetectionTime = 0; 
+        
+        // --- 1. Face-API.js Model Loading ---
+        async function loadModels() {
+            emotionStatus.innerHTML = '<span class="loading-spinner"></span> Initializing AI core...';
+            try {
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+                modelsLoaded = true;
+                emotionStatus.textContent = 'AI core online. Awaiting visual input...';
+                startVideo(); 
+            } catch (error) {
+                console.error('Error loading models:', error);
+                emotionStatus.innerHTML = `<span style="color: var(--error-text);">Error: Core initialization failed. ${error.message}</span>`;
+            }
+        }
+
+        // --- 2. Webcam Access ---
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    videoContainer.style.display = 'flex'; // Show the video container
+                    emotionStatus.textContent = 'Establishing visual link...';
+                })
+                .catch(err => {
+                    console.error('Error accessing webcam:', err);
+                    emotionStatus.textContent = 'Visual link denied. Emotion analysis offline.';
+                    appendMessage("bot", "J.A.R.V.I.S.: Visual input required for emotion analysis. Please grant camera access to enable full functionality.");
+                });
+        }
+
+        // --- 3. Emotion Detection Loop ---
+        async function detectFaceAndExpressions() {
+            if (modelsLoaded && video.readyState === 4 && (performance.now() - lastDetectionTime > MIN_DETECTION_INTERVAL_MS)) {
+                lastDetectionTime = performance.now();
+
+                const detections = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2 })) 
+                    .withFaceLandmarks()
+                    .withFaceExpressions();
+
+                if (!displaySize.width || !displaySize.height) {
+                    displaySize = { width: video.videoWidth, height: video.videoHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                }
+                
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detections) {
+                    const expressions = detections.expressions;
+                    const emotionEntries = Object.entries(expressions);
+                    emotionEntries.sort((a, b) => b[1] - a[1]);
+                    const dominantEmotion = emotionEntries[0][0];
+                    const confidence = (emotionEntries[0][1] * 100).toFixed(0); 
+
+                    detectedEmotion = dominantEmotion;
+                    emotionStatus.textContent = `Emotion Analysis: ${dominantEmotion} (${confidence}%)`;
+
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                    faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+
+                } else {
+                    detectedEmotion = "neutral/no_face";
+                    emotionStatus.textContent = 'Emotion Analysis: No face detected.';
+                }
+            }
+            requestAnimationFrame(detectFaceAndExpressions);
+        }
+
+        // --- 4. Chatbox Functions ---
+        function appendMessage(role, text) {
+            const div = document.createElement("div");
+            div.className = `message ${role}`;
+            div.innerText = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // --- 5. Chat Form Submission ---
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage("user", message);
+            input.value = "";
+
+            try {
+                const res = await fetch("/chat", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, emotion: detectedEmotion })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+
+                const data = await res.json();
+                appendMessage("bot", data.response);
+            } catch (err) {
+                appendMessage("bot", "J.A.R.V.I.S.: Communication error. Unable to connect to core systems.");
+                console.error("Chat error:", err);
+            }
+        };
+
+        // --- Initialization ---
+        video.addEventListener('play', () => {
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                displaySize = { width: video.videoWidth, height: video.videoHeight };
+                faceapi.matchDimensions(canvas, displaySize);
+                requestAnimationFrame(detectFaceAndExpressions);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadModels);
+
+        window.addEventListener('beforeunload', () => {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
